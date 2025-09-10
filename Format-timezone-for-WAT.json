@@ -1,0 +1,39 @@
+// Define the options for formatting the date.
+const options = {
+    timeZone: 'Africa/Lagos', // Representative IANA timezone for WAT
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false // Use 24-hour format
+};
+
+// Create a formatter for the desired locale and options.
+const formatter = new Intl.DateTimeFormat('en-CA', options); // 'en-CA' gives a YYYY-MM-DD format
+
+// Get the current date and format it.
+const watTimestamp = formatter.format(new Date());
+
+console.log(watTimestamp);
+// This will output a string formatted similarly to '2025-08-25, 15:16:00'
+// but it will represent the time in the WAT timezone.
+
+// If you need it in a format closer to ISO 8601, you can piece it together.
+const date = new Date();
+const watDate = new Date(date.toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
+
+// This is a common workaround to get an ISO-like string for a different timezone.
+// It creates a new Date object based on the local time string of the target timezone.
+const year = watDate.getFullYear();
+const month = String(watDate.getMonth() + 1).padStart(2, '0');
+const day = String(watDate.getDate()).padStart(2, '0');
+const hours = String(watDate.getHours()).padStart(2, '0');
+const minutes = String(watDate.getMinutes()).padStart(2, '0');
+const seconds = String(watDate.getSeconds()).padStart(2, '0');
+
+const watIsoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+01:00`;
+
+console.log(watIsoString);
+// Expected output: "2025-08-25T15:16:00+01:00" (example time)

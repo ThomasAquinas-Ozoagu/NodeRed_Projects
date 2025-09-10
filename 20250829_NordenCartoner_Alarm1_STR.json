@@ -1,0 +1,61 @@
+// Get the current values from flow context.
+let alarmId = flow.get('alarm1_id6');
+let alarmMsg = flow.get('alarm1_msg6');
+
+const messageTopic = "ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].Message";
+const idTopic = "ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].ID";
+
+// Update the appropriate context variable based on the incoming message topic
+if (msg.topic === messageTopic) {
+    alarmMsg = String(msg.payload);
+    flow.set('alarm1_msg6', alarmMsg);
+} else if (msg.topic === idTopic) {
+    alarmId = msg.payload;
+    flow.set('alarm1_id6', alarmId);
+} else {
+    // If the topic is not one we are interested in, do nothing.
+    return null;
+}
+
+// Check if all required values have been received.
+if (alarmMsg !== undefined && alarmId !== undefined) {
+
+    // --- TIMESTAMP LOGIC FOR WAT ---
+    const now = new Date();
+    
+    // By defining the options object here, we often avoid the linter error.
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Africa/Lagos',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    }).formatToParts(now);
+
+    const partValues = parts.reduce((acc, part) => {
+        if (part.type !== 'literal') {
+            acc[part.type] = part.value;
+        }
+        return acc;
+    }, {});
+
+    // Assemble into an ISO-like string with the correct offset for WAT (+01:00)
+    const watTimestamp = `${partValues.year}-${partValues.month}-${partValues.day}T${partValues.hour}:${partValues.minute}:${partValues.second}+01:00`;
+    // --- END OF LOGIC ---
+
+    // All values are available. Create the combined payload string.
+    msg.payload = `${watTimestamp} ${alarmId} ${alarmMsg}`;
+
+    // Reset the context variables to wait for a new set of values.
+    flow.set('alarm1_id6', undefined);
+    flow.set('alarm1_msg6', undefined);
+
+    // Send the combined message.
+    return msg;
+} else {
+    // If we don't have all values yet, wait for the others.
+    return null;
+}

@@ -1,0 +1,322 @@
+[
+    {
+        "id": "ed6d06c67e529d65",
+        "type": "tab",
+        "label": "NCA - No Switch",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "136fe5b23b036d4f",
+        "type": "influxdb out",
+        "z": "ed6d06c67e529d65",
+        "influxdb": "69d37cf9f3b2d9a8",
+        "name": "InfluxDB2",
+        "measurement": "machine_performance",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "database",
+        "precisionV18FluxV20": "ms",
+        "retentionPolicyV18Flux": "",
+        "org": "CPT",
+        "bucket": "norden_metrics",
+        "x": 1120,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "11ebec4e78de0a2b",
+        "type": "OpcUa-Client",
+        "z": "ed6d06c67e529d65",
+        "endpoint": "a629bfed1a1ba231",
+        "action": "subscribe",
+        "deadbandtype": "a",
+        "deadbandvalue": 1,
+        "time": "500",
+        "timeUnit": "ms",
+        "certificate": "n",
+        "localfile": "",
+        "localkeyfile": "",
+        "securitymode": "None",
+        "securitypolicy": "None",
+        "useTransport": false,
+        "maxChunkCount": 1,
+        "maxMessageSize": 8192,
+        "receiveBufferSize": 8192,
+        "sendBufferSize": 8192,
+        "name": "Cartoner OPC Client",
+        "x": 450,
+        "y": 820,
+        "wires": [
+            [
+                "371c8c2f0d5a14af"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "ad57c6ab93a4d048",
+        "type": "debug",
+        "z": "ed6d06c67e529d65",
+        "name": "Debug Alarm 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1120,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "cc847c0f7fd9e854",
+        "type": "inject",
+        "z": "ed6d06c67e529d65",
+        "name": "Alarm 1 Message",
+        "props": [
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].Message",
+        "x": 120,
+        "y": 720,
+        "wires": [
+            [
+                "11ebec4e78de0a2b"
+            ]
+        ]
+    },
+    {
+        "id": "4cd50c091f286880",
+        "type": "debug",
+        "z": "ed6d06c67e529d65",
+        "name": "Debug Alarm 5",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1120,
+        "y": 880,
+        "wires": []
+    },
+    {
+        "id": "d0ae2a3cd48929b5",
+        "type": "inject",
+        "z": "ed6d06c67e529d65",
+        "name": "Alarm 1 - ID",
+        "props": [
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].ID",
+        "x": 100,
+        "y": 780,
+        "wires": [
+            [
+                "11ebec4e78de0a2b"
+            ]
+        ]
+    },
+    {
+        "id": "d3fef0735dc3e970",
+        "type": "function",
+        "z": "ed6d06c67e529d65",
+        "name": "Format Alarm Data",
+        "func": "const topic = msg.topic;\nconst ackTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].TimeAck.AlmTime\";\n// const idTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].ID\";\n\nif (topic === ackTopic) {\n    msg.payload = { alarm4_ack: msg.payload };\n    // Output 1 for message\n    return [msg];\n//} else if (topic === idTopic) {\n//    msg.payload = { alarm1_id: msg.payload };\n    // Output 2 for ID\n//    return [null, msg];\n}\n\n// Don't forward messages with unhandled topics\nreturn null;",
+        "outputs": 2,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 750,
+        "y": 940,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "ab1652aa9fcd75c7",
+        "type": "function",
+        "z": "ed6d06c67e529d65",
+        "name": "Combine Alarm ID and Message",
+        "func": "// Get the current values from flow context.\n// The '||' operator initializes them if they don't exist yet.\nlet alarmId = flow.get('alarm1_id');\nlet alarmMsg = flow.get('alarm1_msg');\n\nconst messageTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].Message\";\nconst idTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].ID\";\n\n// Update the appropriate context variable based on the incoming message topic\nif (msg.topic === idTopic) {\n    alarmId = msg.payload;\n    flow.set('alarm1_id', alarmId);\n} else if (msg.topic === messageTopic) {\n    alarmMsg = msg.payload;\n    flow.set('alarm1_msg', alarmMsg);\n} else {\n    // If the topic is not one we are interested in, do nothing.\n    return null;\n}\n\n// Check if both values have been received.\n// We check for 'undefined' to ensure valid values like 0 or \"\" are not missed.\nif (alarmId !== undefined && alarmMsg !== undefined) {\n    // Both values are available, create the combined payload.\n    msg.payload = {\n        alarm1_id: alarmId,\n        alarm1_msg: alarmMsg\n    };\n\n    // Reset the context variables so we wait for a new pair of values.\n    flow.set('alarm1_id', undefined);\n    flow.set('alarm1_msg', undefined);\n\n    // Send the combined message.\n    return msg;\n} else {\n    // If we only have one value, wait for the other.\n    // Do not forward a message yet.\n    return null;\n}",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 980,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "43b59cd843ef58dd",
+        "type": "function",
+        "z": "ed6d06c67e529d65",
+        "name": "Combine Alarm ID and Message",
+        "func": "// Get the current values from flow context.\n// The '||' operator initializes them if they don't exist yet.\nlet alarmId = flow.get('alarm1_id4');\nlet alarmMsg = flow.get('alarm1_msg4');\nlet alarmTime = flow.get('alarm1_time4');\nlet alarmAck = flow.get('alarm1_ack4');\n\nconst messageTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].Message\";\nconst idTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].ID\";\nconst timeTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].TimeEvent.AlmTime\";\nconst ackTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].TimeAck.AlmTime\";\n\n// Update the appropriate context variable based on the incoming message topic\nif (msg.topic === messageTopic) {\n    alarmMsg = String(msg.payload); // Ensure the tag value is a string\n    flow.set('alarm1_msg4', alarmMsg);\n} else if (msg.topic === idTopic) {\n    alarmId = msg.payload;\n    flow.set('alarm1_id4', alarmId); \n} else if (msg.topic === timeTopic) {\n    alarmTime = msg.payload;\n    flow.set('alarm1_time4', alarmTime);\n} else if (msg.topic === ackTopic) {\n    alarmAck = msg.payload;\n    flow.set('alarm1_ack4', alarmAck);\n} else {\n    // If the topic is not one we are interested in, do nothing.\n    return null;\n}\n\n// Check if both values have been received.\nif (alarmMsg !== undefined && alarmId !== undefined && alarmTime !== undefined && alarmAck > 0) {\n    \n    // All values are available.\n    // Create the payload as an array: [fields, tags]\n    msg.payload = [\n        {\n            // This is the object for FIELDS\n            alarm1_msg4: alarmMsg\n        },\n        {\n            // This is the object for TAGS\n            alarm1_id4: alarmId,\n            alarm1_time4: alarmTime,\n            alarm1_ack4: alarmAck\n        }\n    ];\n\n    // Reset the context variables so we wait for a new pair of values.\n    flow.set('alarm1_id4', undefined);\n    flow.set('alarm1_msg4', undefined);\n    flow.set('alarm1_time4', undefined);\n    flow.set('alarm1_ack4', undefined);\n\n    // Send the combined message.\n    return msg;\n} else {\n    // If we only have one value, wait for the other.\n    return null;\n}",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 750,
+        "y": 1040,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "2038a28fe1b304e2",
+        "type": "function",
+        "z": "ed6d06c67e529d65",
+        "name": "Combine Alarm ID and Message with sys time",
+        "func": "// Get the current values from flow context.\n// The '||' operator initializes them if they don't exist yet.\nlet alarmId = flow.get('alarm1_id5');\nlet alarmMsg = flow.get('alarm1_msg5');\n// let alarmTime = flow.get('alarm1_time5');\n// let alarmAck = flow.get('alarm1_ack5');\n\nconst messageTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].Message\";\nconst idTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].ID\";\n// const timeTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].TimeEvent.AlmTime\";\n// const ackTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].TimeAck.AlmTime\";\n\n// Update the appropriate context variable based on the incoming message topic\nif (msg.topic === messageTopic) {\n    alarmMsg = String(msg.payload); // Ensure the tag value is a string\n    flow.set('alarm1_msg5', alarmMsg);\n} else if (msg.topic === idTopic) {\n    alarmId = msg.payload;\n   flow.set('alarm1_id5', alarmId); \n// } else if (msg.topic === timeTopic) {\n //    alarmTime = new Date(msg.payload).toISOString();  // Ensure the tag value is a DateTime variable\n //    flow.set('alarm1_time5', alarmTime);\n// } else if (msg.topic === ackTopic) {\n//     alarmAck = msg.payload;\n//     flow.set('alarm1_ack5', alarmAck);\n} else {\n    // If the topic is not one we are interested in, do nothing.\n    return null;\n}\n\n// Check if both values have been received.\nif (alarmMsg !== undefined) {\n    \n    // All values are available.\n    // Create the payload as an array: [fields, tags]\n    msg.payload = [\n        {\n            // This is the object for FIELDS\n            alarm1_msg5: alarmMsg\n        },\n        {\n            // This is the object for TAGS\n            alarm1_id5: alarmId,\n            timestamp: new Date().toISOString(),\n            // alarm1_ack5: alarmAck\n        }\n    ];\n\n    // Reset the context variables so we wait for a new pair of values.\n    flow.set('alarm1_id5', undefined);\n    flow.set('alarm1_msg5', undefined);\n    // flow.set('alarm1_time5', undefined);\n    // flow.set('alarm1_ack5', undefined);\n\n    // Send the combined message.\n    return msg;\n} else {\n    // If we only have one value, wait for the other.\n    return null;\n}",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 800,
+        "y": 800,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "3bfaa35bec515166",
+        "type": "debug",
+        "z": "ed6d06c67e529d65",
+        "name": "Debug Alarm ack",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1130,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "d75183a4ae412292",
+        "type": "function",
+        "z": "ed6d06c67e529d65",
+        "name": "Combine Alarm ID and Message without ack",
+        "func": "// Get the current values from flow context.\n// The '||' operator initializes them if they don't exist yet.\nlet alarmId = flow.get('alarm1_id5');\nlet alarmMsg = flow.get('alarm1_msg5');\nlet alarmTime = flow.get('alarm1_time5');\n// let alarmAck = flow.get('alarm1_ack5');\n\nconst messageTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].Message\";\nconst idTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].ID\";\nconst timeTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].TimeEvent.AlmTime\";\n// const ackTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].TimeAck.AlmTime\";\n\n// Update the appropriate context variable based on the incoming message topic\nif (msg.topic === messageTopic) {\n    alarmMsg = String(msg.payload); // Ensure the tag value is a string\n    flow.set('alarm1_msg5', alarmMsg);\n} else if (msg.topic === idTopic) {\n    alarmId = msg.payload;\n   flow.set('alarm1_id5', alarmId); \n} else if (msg.topic === timeTopic) {\n    alarmTime = msg.payload;\n    flow.set('alarm1_time5', alarmTime);\n// } else if (msg.topic === ackTopic) {\n//     alarmAck = msg.payload;\n//     flow.set('alarm1_ack5', alarmAck);\n} else {\n    // If the topic is not one we are interested in, do nothing.\n    return null;\n}\n\n// Check if both values have been received.\nif (alarmMsg !== undefined && alarmTime !== undefined) {\n    \n    // All values are available.\n    // Create the payload as an array: [fields, tags]\n    msg.payload = [\n        {\n            // This is the object for FIELDS\n            alarm1_msg5: alarmMsg\n        },\n        {\n            // This is the object for TAGS\n            alarm1_id5: alarmId,\n            alarm1_time5: alarmTime,\n            // alarm1_ack5: alarmAck\n        }\n    ];\n\n    // Reset the context variables so we wait for a new pair of values.\n    flow.set('alarm1_id5', undefined);\n    flow.set('alarm1_msg5', undefined);\n    flow.set('alarm1_time5', undefined);\n    // flow.set('alarm1_ack5', undefined);\n\n    // Send the combined message.\n    return msg;\n} else {\n    // If we only have one value, wait for the other.\n    return null;\n}",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 810,
+        "y": 900,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "eae544d12b995353",
+        "type": "function",
+        "z": "ed6d06c67e529d65",
+        "name": "Combine Alarm ID and Message with time",
+        "func": "// Get the current values from flow context.\n// The '||' operator initializes them if they don't exist yet.\nlet alarmId = flow.get('alarm1_id5');\nlet alarmMsg = flow.get('alarm1_msg5');\nlet alarmTime = flow.get('alarm1_time5');\n// let alarmAck = flow.get('alarm1_ack5');\n\nconst messageTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].Message\";\nconst idTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].ID\";\nconst timeTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].TimeEvent.AlmTime\";\n// const ackTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].TimeAck.AlmTime\";\n\n// Update the appropriate context variable based on the incoming message topic\nif (msg.topic === messageTopic) {\n    alarmMsg = String(msg.payload); // Ensure the tag value is a string\n    flow.set('alarm1_msg5', alarmMsg);\n} else if (msg.topic === idTopic) {\n    alarmId = msg.payload;\n   flow.set('alarm1_id5', alarmId); \n} else if (msg.topic === timeTopic) {\n    alarmTime = new Date(msg.payload).toISOString();  // Ensure the tag value is a DateTime variable\n    flow.set('alarm1_time5', alarmTime);\n// } else if (msg.topic === ackTopic) {\n//     alarmAck = msg.payload;\n//     flow.set('alarm1_ack5', alarmAck);\n} else {\n    // If the topic is not one we are interested in, do nothing.\n    return null;\n}\n\n// Check if both values have been received.\nif (alarmMsg !== undefined && alarmTime !== undefined) {\n    \n    // All values are available.\n    // Create the payload as an array: [fields, tags]\n    msg.payload = [\n        {\n            // This is the object for FIELDS\n            alarm1_msg5: alarmMsg\n        },\n        {\n            // This is the object for TAGS\n            alarm1_id5: alarmId,\n            alarm1_time5: alarmTime,\n            // alarm1_ack5: alarmAck\n        }\n    ];\n\n    // Reset the context variables so we wait for a new pair of values.\n    flow.set('alarm1_id5', undefined);\n    flow.set('alarm1_msg5', undefined);\n    flow.set('alarm1_time5', undefined);\n    // flow.set('alarm1_ack5', undefined);\n\n    // Send the combined message.\n    return msg;\n} else {\n    // If we only have one value, wait for the other.\n    return null;\n}",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 800,
+        "y": 860,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "371c8c2f0d5a14af",
+        "type": "function",
+        "z": "ed6d06c67e529d65",
+        "name": "Combine Alarm ID and Message with WAT time",
+        "func": "// Get the current values from flow context.\nlet alarmId = flow.get('alarm1_id6');\nlet alarmMsg = flow.get('alarm1_msg6');\n\n\nconst messageTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].Message\";\nconst idTopic = \"ns=2;s=NordenApplication.GVL_PackML.G_stPMLa.Alarm[1].ID\";\n\n\n// Update the appropriate context variable based on the incoming message topic\nif (msg.topic === messageTopic) {\n    alarmMsg = String(msg.payload);\n    flow.set('alarm1_msg6', alarmMsg);\n} else if (msg.topic === idTopic) {\n    alarmId = msg.payload;\n    flow.set('alarm1_id6', alarmId);\n\n} else {\n    // If the topic is not one we are interested in, do nothing.\n    return null;\n}\n\n// Check if all required values have been received.\nif (alarmMsg !== undefined && alarmId !== undefined) {\n\n    // --- TIMESTAMP LOGIC FOR WAT ---\n    const now = new Date();\n    \n    // By defining the options object here, we often avoid the linter error.\n    const parts = new Intl.DateTimeFormat('en-US', {\n        timeZone: 'Africa/Lagos',\n        year: 'numeric',\n        month: '2-digit',\n        day: '2-digit',\n        hour: '2-digit',\n        minute: '2-digit',\n        second: '2-digit',\n        hour12: false\n    }).formatToParts(now);\n\n    const partValues = parts.reduce((acc, part) => {\n        if (part.type !== 'literal') {\n            acc[part.type] = part.value;\n        }\n        return acc;\n    }, {});\n\n    // Assemble into an ISO-like string with the correct offset for WAT (+01:00)\n    const watTimestamp = `${partValues.year}-${partValues.month}-${partValues.day}T${partValues.hour}:${partValues.minute}:${partValues.second}+01:00`;\n    // --- END OF LOGIC ---\n\n    // All values are available. Create the payload.\n    msg.payload = [\n        {\n            // This is the object for FIELDS\n            alarm1_msg6: alarmMsg\n        },\n        {\n            // This is the object for TAGS\n            timestamp: watTimestamp,  // The new processing time, in WAT\n            alarm1_id6: alarmId\n\n        }\n    ];\n\n    // Reset the context variables to wait for a new set of values.\n    flow.set('alarm1_id6', undefined);\n    flow.set('alarm1_msg6', undefined);\n\n    // Send the combined message.\n    return msg;\n} else {\n    // If we don't have all values yet, wait for the others.\n    return null;\n}",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 820,
+        "y": 740,
+        "wires": [
+            [
+                "4cd50c091f286880",
+                "136fe5b23b036d4f"
+            ]
+        ]
+    },
+    {
+        "id": "69d37cf9f3b2d9a8",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": 8086,
+        "protocol": "http",
+        "database": "database",
+        "name": "influx_1",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "2.0",
+        "url": "http://localhost:8086",
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "a629bfed1a1ba231",
+        "type": "OpcUa-Endpoint",
+        "endpoint": "opc.tcp://192.168.29.97:4840",
+        "secpol": "None",
+        "secmode": "None",
+        "none": true,
+        "login": false,
+        "usercert": false,
+        "usercertificate": "",
+        "userprivatekey": ""
+    },
+    {
+        "id": "04690153852c0a5e",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-influxdb": "0.6.1",
+            "node-red-contrib-opcua": "0.2.323"
+        }
+    }
+]
